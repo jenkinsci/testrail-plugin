@@ -52,14 +52,17 @@ public class TestRailNotifier extends Notifier {
     private String junitResultsGlob;
     private String testrailMilestone;
     private boolean enableMilestone;
+    private boolean createNewTestcases;
+
     // Fields in config.jelly must match the parameter names in the "DataBoundConstructor"
     @DataBoundConstructor
-    public TestRailNotifier(int testrailProject, int testrailSuite, String junitResultsGlob, String testrailMilestone, boolean enableMilestone) {
+    public TestRailNotifier(int testrailProject, int testrailSuite, String junitResultsGlob, String testrailMilestone, boolean enableMilestone, boolean createNewTestcases) {
         this.testrailProject = testrailProject;
         this.testrailSuite = testrailSuite;
         this.junitResultsGlob = junitResultsGlob;
         this.testrailMilestone = testrailMilestone;
         this.enableMilestone = enableMilestone;
+        this.createNewTestcases = createNewTestcases;
     }
 
     public void setTestrailProject(int project) { this.testrailProject = project;}
@@ -72,6 +75,8 @@ public class TestRailNotifier extends Notifier {
     public void setTestrailMilestone(String milestone) { this.testrailMilestone = milestone; }
     public void setEnableMilestone(boolean mstone) {this.enableMilestone = mstone; }
     public boolean getEnableMilestone() { return  this.enableMilestone; }
+    public void setCreateNewTestcases(boolean newcases) {this.createNewTestcases = newcases; }
+    public boolean getCreateNewTestcases() { return  this.createNewTestcases; }
 
     @Override
     public boolean perform(AbstractBuild build, Launcher launcher, BuildListener listener)
@@ -175,23 +180,30 @@ public class TestRailNotifier extends Notifier {
         }
         if (suite.hasCases()) {
             for (Testcase testcase : suite.getCases()) {
-                int caseId;
+                int caseId = 0;
+                boolean addResult = false;
                 try {
                     caseId = existingCases.getCaseId(suite.getName(), testcase.getName());
+                    addResult = true;
                 } catch (ElementNotFoundException e) {
-                    caseId = existingCases.addCase(testcase, sectionId);
+                    if (this.createNewTestcases) {
+                        caseId = existingCases.addCase(testcase, sectionId);
+                        addResult = true;
+                    }
                 }
-                int caseStatus;
-                Float caseTime = testcase.getTime();
-                String caseComment = null;
-                Failure caseFailure = testcase.getFailure();
-                if (caseFailure != null) {
-                    caseStatus = 5; // Failed
-                    caseComment = caseFailure.getText();
-                } else {
-                    caseStatus = 1; // Passed
+                if (addResult) {
+                    int caseStatus;
+                    Float caseTime = testcase.getTime();
+                    String caseComment = null;
+                    Failure caseFailure = testcase.getFailure();
+                    if (caseFailure != null) {
+                        caseStatus = 5; // Failed
+                        caseComment = caseFailure.getText();
+                    } else {
+                        caseStatus = 1; // Passed
+                    }
+                    results.addResult(new Result(caseId, caseStatus, caseComment, caseTime));
                 }
-                results.addResult(new Result(caseId, caseStatus, caseComment, caseTime));
             }
         }
         return results;
