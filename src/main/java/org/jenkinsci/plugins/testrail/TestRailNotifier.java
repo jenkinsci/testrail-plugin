@@ -287,7 +287,6 @@ public class TestRailNotifier extends Notifier {
                 }
             } catch (ElementNotFoundException e) {
             } catch (IOException e) {
-            } catch (TestRailException e) {
             }
 
             return items;
