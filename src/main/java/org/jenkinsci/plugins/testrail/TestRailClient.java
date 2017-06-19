@@ -225,7 +225,14 @@ public class TestRailClient {
     public Case[] getCases(int projectId, int suiteId) throws IOException, ElementNotFoundException {
         // "/#{project_id}&suite_id=#{suite_id}#{section_string}"
         String body = httpGet("index.php?/api/v2/get_cases/" + projectId + "&suite_id=" + suiteId).getBody();
-        JSONArray json = new JSONArray(body);
+
+        JSONArray json;
+
+        try {
+            json = new JSONArray(body);
+        } catch (JSONException e) {
+            throw new ElementNotFoundException("No cases for project " + projectId + " and suite " + suiteId + "! Response from TestRail is: \n" + body);
+        }
 
         Case[] cases = new Case[json.length()];
         for (int i = 0; i < json.length(); i++) {
@@ -304,7 +311,7 @@ public class TestRailClient {
         for (int i = 0; i < results.getResults().size(); i++) {
             JSONObject o = new JSONObject();
             Result r = results.getResults().get(i);
-            o.put("case_id", r.getCaseId()).put("status_id", r.getStatusId()).put("comment", r.getComment()).put("elapsed", r.getElapsedTimeString());
+            o.put("case_id", r.getCaseId()).put("status_id", r.getStatus().getValue()).put("comment", r.getComment()).put("elapsed", r.getElapsedTimeString());
             a.put(o);
         }
 

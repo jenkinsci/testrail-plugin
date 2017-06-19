@@ -29,21 +29,16 @@ import hudson.util.ListBoxModel;
 import hudson.tasks.*;
 import hudson.util.FormValidation;
 import net.sf.json.JSONObject;
+import org.jenkinsci.plugins.testrail.JunitResults.*;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
-import org.jenkinsci.plugins.testrail.JunitResults.Failure;
-import org.jenkinsci.plugins.testrail.JunitResults.JUnitResults;
-import org.jenkinsci.plugins.testrail.JunitResults.Testcase;
-import org.jenkinsci.plugins.testrail.JunitResults.Testsuite;
 import org.jenkinsci.plugins.testrail.TestRailObjects.*;
 
 import javax.servlet.ServletException;
 import javax.xml.bind.JAXBException;
 import java.io.IOException;
-import java.util.Iterator;
 import java.util.List;
-import static org.jenkinsci.plugins.testrail.Utils.*;
 
 public class TestRailNotifier extends Notifier {
 
@@ -84,7 +79,7 @@ public class TestRailNotifier extends Notifier {
         try {
             testCases = new ExistingTestCases(testrail, this.testrailProject, this.testrailSuite);
         } catch (ElementNotFoundException e) {
-            listener.getLogger().println("Cannot find project on TestRail server. Please check your Jenkins job and system configurations.");
+            listener.getLogger().println("Cannot find project or suite on TestRail server. Please check your Jenkins job and system configurations.");
             return false;
         }
 
@@ -202,17 +197,22 @@ public class TestRailNotifier extends Notifier {
                 } catch (ElementNotFoundException e) {
                     caseId = existingCases.addCase(testcase, sectionId);
                 }
-                int caseStatus;
+                CaseStatus caseStatus;
                 Float caseTime = testcase.getTime();
                 String caseComment = null;
                 Failure caseFailure = testcase.getFailure();
                 if (caseFailure != null) {
-                    caseStatus = 5; // Failed
+                    caseStatus = CaseStatus.FAILED;
                     caseComment = (caseFailure.getMessage() == null) ? caseFailure.getText() : caseFailure.getMessage() + "\n" + caseFailure.getText();
+                } else if (testcase.getSkipped() != null) {
+                    caseStatus = CaseStatus.UNTESTED;
                 } else {
-                    caseStatus = 1; // Passed
+                    caseStatus = CaseStatus.PASSED;
                 }
-                results.addResult(new Result(caseId, caseStatus, caseComment, caseTime));
+
+                if (caseStatus != CaseStatus.UNTESTED){
+                    results.addResult(new Result(caseId, caseStatus, caseComment, caseTime));
+                }
             }
         }
 
