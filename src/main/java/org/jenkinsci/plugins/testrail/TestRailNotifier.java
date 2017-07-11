@@ -208,16 +208,6 @@ public class TestRailNotifier extends Notifier {
                     }
                 }
                 if (addResult) {
-                    int caseStatus;
-                    Float caseTime = testcase.getTime();
-                    String caseComment = null;
-                    Failure caseFailure = testcase.getFailure();
-                    if (caseFailure != null) {
-                        caseStatus = 5; // Failed
-                        caseComment = caseFailure.getText();
-                    } else {
-                        caseStatus = 1; // Passed
-                    }
 	                CaseStatus caseStatus;
 	                Float caseTime = testcase.getTime();
 	                String caseComment = null;
