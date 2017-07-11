@@ -10,7 +10,11 @@ Each test suite becomes a test group.
 
 Using the Plugin
 -----
-1. First, install the TestRail Notifier plugin via the Plugin interface. You can also install this manually, but it's not recommended unless you are an experienced user.
+1. This plugin is not yet available through Plugin Manager. It must be installed manually. To do this, Download the plugin and use the command
+
+''' mvn package '''
+
+This will create the hpi file (found in /testrail-plugin/target), which you can then upload to your Jenkins installation.
 
 2. Once you install the plugin, you must configure the TestRail user in your Global Settings. 
 ![Global Settings for the TestRail Notifier](global-settings.PNG)

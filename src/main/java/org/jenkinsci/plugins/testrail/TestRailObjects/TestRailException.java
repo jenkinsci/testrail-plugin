@@ -18,22 +18,11 @@
  */
 package org.jenkinsci.plugins.testrail.TestRailObjects;
 
-import java.util.ArrayList;
-import java.util.List;
-
 /**
- * Created by Drew on 3/25/2014.
+ * Created by Adam 'xirsoi' Chevalier on 4/28/2017.
  */
-public class Results {
-
-    private List<Result> results;
-
-    public Results() {
-        this.results = new ArrayList<Result>();
+public class TestRailException extends Exception {
+    public TestRailException(String message) {
+        super(message);
     }
-
-    public void setResults(ArrayList<Result> results) { this.results = results; }
-    public void addResult(Result result) { this.results.add(result); }
-    public List<Result> getResults() { return this.results; }
-    public void merge(Results other) { this.results.addAll(other.getResults()); }
 }
