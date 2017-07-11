@@ -27,6 +27,7 @@ import javax.xml.bind.annotation.XmlElement;
 public class Testcase {
     private String name;
     private Failure failure;
+    private Skipped skipped;
     private Float time;
     private String refs;
 
@@ -34,6 +35,8 @@ public class Testcase {
     public void setName(String name) { this.name = name.trim(); }
     @XmlElement(name = "failure")
     public void setFailure(Failure failure) { this.failure = failure; }
+    @XmlElement(name = "skipped")
+    public void setSkipped(Skipped skipped) { this.skipped = skipped; }
     @XmlAttribute(name = "time")
     public void setTime(Float time) { this.time = time; }
     @XmlAttribute(name = "refs")
@@ -41,6 +44,7 @@ public class Testcase {
 
     public String getName() { return this.name; }
     public Failure getFailure() { return this.failure; }
+    public Skipped getSkipped() { return this.skipped; }
     public Float getTime() { return this.time; }
     public String getRefs() { return this.refs; }
 }

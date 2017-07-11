@@ -102,13 +102,14 @@ public class ExistingTestCases {
         throw new ElementNotFoundException(sectionName);
     }
 
-    public int addSection(String sectionName, String parentId) throws IOException, ElementNotFoundException {
+    public int addSection(String sectionName, String parentId) 
+            throws IOException, ElementNotFoundException, TestRailException {
         Section addedSection = testRailClient.addSection(sectionName, projectId, suiteId, parentId);
         sections.add(addedSection);
         return addedSection.getId();
     }
 
-    public int addCase(Testcase caseToAdd, int sectionId) throws IOException {
+    public int addCase(Testcase caseToAdd, int sectionId) throws IOException, TestRailException {
         Case addedCase = testRailClient.addCase(caseToAdd, sectionId);
         cases.add(addedCase);
         return addedCase.getId();

@@ -33,7 +33,7 @@ public class Testsuite {
     private int errors;
     private int skipped;
     private List<Testcase> cases;
-    private List<Testsuite> suits;
+    private List<Testsuite> suites;
     @XmlAttribute
     public void setName(String name) { this.name = name.trim(); }
     @XmlAttribute
@@ -45,14 +45,14 @@ public class Testsuite {
     @XmlElement(name = "testcase")
     public void setCases(List<Testcase> cases) { this.cases = cases; }
     @XmlElement(name = "testsuite")
-    public void setSuits(List<Testsuite> suits) { this.suits = suits; }
+    public void setSuites(List<Testsuite> suites) { this.suites = suites; }
 
     public String getName() { return this.name; }
     public List<Testcase> getCases() { return this.cases; }
-    public List<Testsuite> getSuits() {return this.suits; }
+    public List<Testsuite> getSuites() {return this.suites; }
     public int getFailures() { return this.failures; }
     public int getErrors() { return this.errors; }
     public int getSkipped() { return this.skipped; }
-    public boolean hasSuits() { return this.suits != null; }
+    public boolean hasSuites() { return this.suites != null; }
     public boolean hasCases() { return this.cases != null; }
 }

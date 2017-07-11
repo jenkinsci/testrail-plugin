@@ -29,21 +29,16 @@ import hudson.util.ListBoxModel;
 import hudson.tasks.*;
 import hudson.util.FormValidation;
 import net.sf.json.JSONObject;
+import org.jenkinsci.plugins.testrail.JunitResults.*;
 import org.kohsuke.stapler.DataBoundConstructor;
 import org.kohsuke.stapler.QueryParameter;
 import org.kohsuke.stapler.StaplerRequest;
-import org.jenkinsci.plugins.testrail.JunitResults.Failure;
-import org.jenkinsci.plugins.testrail.JunitResults.JUnitResults;
-import org.jenkinsci.plugins.testrail.JunitResults.Testcase;
-import org.jenkinsci.plugins.testrail.JunitResults.Testsuite;
 import org.jenkinsci.plugins.testrail.TestRailObjects.*;
 
 import javax.servlet.ServletException;
 import javax.xml.bind.JAXBException;
 import java.io.IOException;
-import java.util.Iterator;
 import java.util.List;
-import static org.jenkinsci.plugins.testrail.Utils.*;
 
 public class TestRailNotifier extends Notifier {
 
@@ -79,8 +74,7 @@ public class TestRailNotifier extends Notifier {
     public boolean getCreateNewTestcases() { return  this.createNewTestcases; }
 
     @Override
-    public boolean perform(AbstractBuild build, Launcher launcher, BuildListener listener)
-            throws IOException, InterruptedException {
+    public boolean perform(AbstractBuild build, Launcher launcher, BuildListener listener) throws IOException, InterruptedException {
         TestRailClient  testrail = getDescriptor().getTestrailInstance();
         testrail.setHost(getDescriptor().getTestrailHost());
         testrail.setUser(getDescriptor().getTestrailUser());
@@ -90,7 +84,7 @@ public class TestRailNotifier extends Notifier {
         try {
             testCases = new ExistingTestCases(testrail, this.testrailProject, this.testrailSuite);
         } catch (ElementNotFoundException e) {
-            listener.getLogger().println("Cannot find project on TestRail server. Please check your Jenkins job and system configurations.");
+            listener.getLogger().println("Cannot find project or suite on TestRail server. Please check your Jenkins job and system configurations.");
             return false;
         }
 
@@ -134,16 +128,30 @@ public class TestRailNotifier extends Notifier {
             return false;
         }
         List<Testsuite> suites = actualJunitResults.getSuites();
-        for (Testsuite suite: suites) {
-            results.merge(addSuite(suite, null, testCases));
+        try {
+            for (Testsuite suite: suites) {
+                results.merge(addSuite(suite, null, testCases));
+            }
+        } catch (Exception e) {
+            listener.getLogger().println("Failed to create missing Test Suites in TestRail.");
+            listener.getLogger().println("EXCEPTION: " + e.getMessage());
         }
 
         listener.getLogger().println("Uploading results to TestRail.");
         String runComment = "Automated results from Jenkins: " + build.getUrl().toString();
         String milestoneId = testrailMilestone;
 
-        int runId = testrail.addRun(testCases.getProjectId(), testCases.getSuiteId(), milestoneId, runComment);
-        TestRailResponse response = testrail.addResultsForCases(runId, results);
+        int runId = -1;
+        TestRailResponse response;
+        try {
+            runId = testrail.addRun(testCases.getProjectId(), testCases.getSuiteId(), milestoneId, runComment);
+            response = testrail.addResultsForCases(runId, results);
+        } catch (TestRailException e) {
+            listener.getLogger().println("Error pushing results to TestRail");
+            listener.getLogger().println(e.getMessage());
+            return false;
+        }
+
         boolean buildResult = (200 == response.getStatus());
         if (buildResult) {
             listener.getLogger().println("Successfully uploaded test results.");
@@ -152,12 +160,17 @@ public class TestRailNotifier extends Notifier {
             listener.getLogger().println("status: " + response.getStatus());
             listener.getLogger().println("body :\n" + response.getBody());
         }
-        testrail.closeRun(runId);
+        try {
+            testrail.closeRun(runId);
+        } catch (Exception e) {
+            listener.getLogger().println("Failed to close test run in TestRail.");
+            listener.getLogger().println("EXCEPTION: " + e.getMessage());
+        }
 
         return buildResult;
     }
 
-    public Results addSuite(Testsuite suite, String parentId, ExistingTestCases existingCases) throws IOException {
+    public Results addSuite(Testsuite suite, String parentId, ExistingTestCases existingCases) throws IOException, TestRailException {
         //figure out TR sectionID
         int sectionId;
         try {
@@ -171,13 +184,16 @@ public class TestRailNotifier extends Notifier {
                 return null;
             }
         }
+
         //if we have any subsections - process them
         Results results = new Results();
-        if (suite.hasSuits()) {
-            for (Testsuite subsuite : suite.getSuits()) {
+
+        if (suite.hasSuites()) {
+            for (Testsuite subsuite : suite.getSuites()) {
                 results.merge(addSuite(subsuite, String.valueOf(sectionId), existingCases));
             }
         }
+
         if (suite.hasCases()) {
             for (Testcase testcase : suite.getCases()) {
                 int caseId = 0;
@@ -202,12 +218,28 @@ public class TestRailNotifier extends Notifier {
                     } else {
                         caseStatus = 1; // Passed
                     }
-                    results.addResult(new Result(caseId, caseStatus, caseComment, caseTime));
+                    CaseStatus caseStatus;
+                    Float caseTime = testcase.getTime();
+                    String caseComment = null;
+                    Failure caseFailure = testcase.getFailure();
+                    if (caseFailure != null) {
+                        caseStatus = CaseStatus.FAILED;
+                        caseComment = (caseFailure.getMessage() == null) ? caseFailure.getText() : caseFailure.getMessage() + "\n" + caseFailure.getText();
+                    } else if (testcase.getSkipped() != null) {
+                        caseStatus = CaseStatus.UNTESTED;
+                    } else {
+                        caseStatus = CaseStatus.PASSED;
+                    }
+                    if (caseStatus != CaseStatus.UNTESTED){
+                        results.addResult(new Result(caseId, caseStatus, caseComment, caseTime));
+                    }
                 }
             }
         }
+
         return results;
     }
+
     // Overridden for better type safety.
     // If your plugin doesn't really define any property on Descriptor,
     // you don't have to do this.
@@ -245,10 +277,12 @@ public class TestRailNotifier extends Notifier {
             }
             return FormValidation.ok();
         }
+
         public ListBoxModel doFillTestrailProjectItems() {
             testrail.setHost(getTestrailHost());
             testrail.setUser(getTestrailUser());
             testrail.setPassword(getTestrailPassword());
+
             ListBoxModel items = new ListBoxModel();
             try {
                 for (Project prj : testrail.getProjects()) {
@@ -257,6 +291,7 @@ public class TestRailNotifier extends Notifier {
             } catch (ElementNotFoundException e) {
             } catch (IOException e) {
             }
+
             return items;
         }
 
@@ -264,25 +299,29 @@ public class TestRailNotifier extends Notifier {
             testrail.setHost(getTestrailHost());
             testrail.setUser(getTestrailUser());
             testrail.setPassword(getTestrailPassword());
-            ListBoxModel items = new ListBoxModel();
 
+            ListBoxModel items = new ListBoxModel();
             try {
-                for (Suite suite : testrail.getSuits(testrailProject)) {
+                for (Suite suite : testrail.getSuites(testrailProject)) {
                     items.add(suite.getName(), suite.getStringId());
                 }
             } catch (ElementNotFoundException e) {
             } catch (IOException e) {
             }
+
             return items;
         }
+
         public FormValidation doCheckTestrailSuite(@QueryParameter String value)
                 throws IOException, ServletException {
             testrail.setHost(getTestrailHost());
             testrail.setUser(getTestrailUser());
             testrail.setPassword(getTestrailPassword());
+
             if (getTestrailHost().isEmpty() || getTestrailUser().isEmpty() || getTestrailPassword().isEmpty() || !testrail.serverReachable() || !testrail.authenticationWorks()) {
                 return FormValidation.warning("Please fix your TestRail configuration in Manage Jenkins -> Configure System.");
             }
+
             return FormValidation.ok();
         }
 
@@ -348,8 +387,6 @@ public class TestRailNotifier extends Notifier {
             return FormValidation.ok();
         }
 
-
-
         public ListBoxModel doFillTestrailMilestoneItems(@QueryParameter int testrailProject) {
             ListBoxModel items = new ListBoxModel();
             items.add("None", "");
@@ -372,7 +409,7 @@ public class TestRailNotifier extends Notifier {
          * This human readable name is used in the configuration screen.
          */
         public String getDisplayName() {
-            return "Notify TestRail";
+            return "TestRail Plugin";
         }
 
         @Override
@@ -398,6 +435,5 @@ public class TestRailNotifier extends Notifier {
         public String getTestrailPassword() { return testrailPassword; }
         public void setTestrailInstance(TestRailClient trc) { testrail = trc; }
         public TestRailClient getTestrailInstance() { return testrail; }
-
     }
 }

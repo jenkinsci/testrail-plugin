@@ -11,7 +11,7 @@
   <groupId>org.jenkinsci.plugins</groupId>
   <artifactId>testrail</artifactId>
   <name>TestRail Plugin</name>
-  <version>1.0.5-SNAPSHOT</version>
+  <version>1.0.7-SNAPSHOT</version>
   <licenses>
     <license>
       <name>Apache License, Version 2.0</name>
@@ -28,6 +28,18 @@
     <url>https://github.com/jenkinsci/testrail-plugin</url>
     <tag>HEAD</tag>
   </scm>
+
+  <distributionManagement>
+    <repository>
+      <uniqueVersion>false</uniqueVersion>
+      <id>maven.jenkins-ci.org</id>
+      <url>https://repo.jenkins-ci.org/releases/</url>
+    </repository>
+    <snapshotRepository>
+      <id>maven.jenkins-ci.org</id>
+      <url>https://repo.jenkins-ci.org/snapshots/</url>
+    </snapshotRepository>
+  </distributionManagement>
 
   <developers>
     <developer>
