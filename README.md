@@ -26,6 +26,12 @@ Note you can also optionally define a Milestone that you are testing against.
 The Test Report XMLs is a comma separated list of XML files in the job workspace containing results to send to TestRail.
 ![Project Settings for the TestRail Notifier](job-settings.PNG)
 
+Pipeline Support
+-----
+To use this plugin in a pipeline, add the following to your jenkinsfile:
+
+testRail(testrailProject: <Project ID>, testrailSuite: <Suite ID>, junitResultsGlob: '<Junit results>', createNewTestcases:<true | false>])
+
 Developers
 -----
 This is a Maven project. You'll need the following in your ~/.m2/settings.xml.
