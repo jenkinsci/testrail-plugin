@@ -20,6 +20,7 @@ package org.jenkinsci.plugins.testrail.JunitResults;
 
 import javax.xml.bind.annotation.XmlAttribute;
 import javax.xml.bind.annotation.XmlElement;
+import javax.xml.bind.annotation.XmlElements;
 
 /**
  * Created by Drew on 3/24/2014.
@@ -33,7 +34,10 @@ public class Testcase {
 
     @XmlAttribute
     public void setName(String name) { this.name = name.trim(); }
-    @XmlElement(name = "failure")
+    @XmlElements({
+            @XmlElement(name = "failure"),
+            @XmlElement(name = "error")
+    })
     public void setFailure(Failure failure) { this.failure = failure; }
     @XmlElement(name = "skipped")
     public void setSkipped(Skipped skipped) { this.skipped = skipped; }
