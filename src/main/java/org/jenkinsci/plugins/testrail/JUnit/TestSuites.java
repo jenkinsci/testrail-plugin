@@ -7,7 +7,7 @@ import java.util.List;
 /**
  * Created by achikin on 7/29/14.
  */
-@XmlRootElement
+@XmlRootElement(name="testsuites")
 public class TestSuites {
     private int failures;
     private int errors;

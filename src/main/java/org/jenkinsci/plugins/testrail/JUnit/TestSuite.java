@@ -26,7 +26,7 @@ import java.util.List;
 /**
  * Created by Drew on 3/24/2014.
  */
-@XmlRootElement
+@XmlRootElement(name="testsuite")
 public class TestSuite {
     private String name;
     private int failures;
