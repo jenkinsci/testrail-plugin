@@ -39,6 +39,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import jenkins.MasterToSlaveFileCallable;
+import jenkins.model.Jenkins;
 
 /**
  * Created by Drew on 3/24/2014.
@@ -52,7 +53,7 @@ public class JUnitResults {
     private static JAXBContext getJAXBContext(Class<?>... classesToBeBound) throws JAXBException {
         Thread t = Thread.currentThread();
         ClassLoader orig = t.getContextClassLoader();
-        t.setContextClassLoader(RealJenkinsRule.Endpoint.class.getClassLoader());
+        t.setContextClassLoader(Jenkins.get().getPluginManager().uberClassLoader);
         try {
             return JAXBContext.newInstance(classesToBeBound);
         } finally {
